@@ -1,19 +1,16 @@
+// this allows the user to return their directory path
+
 import { useState } from "react";
 
 export default function Directory({ setGDirectory, gDirectory }) {
   const [directory, setDirectory] = useState("");
 
-  //   let path;
-  //   document.getElementById("path_submit").onclick = function () {
-  //     path = document.getElementById("path_input").value;
-  //     document.getElementById("directory_status").textContent = `${path}`;
-  //     console.log(path);
-  //   };
+
   return (
     <ul>
       <div>Welcome</div>
       <form>
-        <label>Directory for downloaded files</label>
+        <label>Directory for downloaded files (no-quotes)</label>
         <input
           type="text"
           placeholder="directory"

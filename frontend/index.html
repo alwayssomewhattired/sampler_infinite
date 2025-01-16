@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -7,7 +7,16 @@
     <title>Vite + React</title>
   </head>
   <body>
+    <div>hello</div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <audio crossorigin="anonymous" controls autoplay muted>
+      <source
+        src="https://archive.org/download/The_Dread_-_FMA_Sampler-18671/The_Dread_-_05_-_Thrashin.mp3"
+      />
+    </audio>
+    <button data-playing="false" role="switch" aria-checked="false">
+      <span>Play/Pause</span>
+    </button>
   </body>
 </html>
