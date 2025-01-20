@@ -1,23 +1,36 @@
 // lots of vulnerabilities in web-audio-api dependencies...
 
-// import { useRef } from "react";
-
 export default function AudioEditor() {
-  const ctx = new AudioContext();
-  const analyser = ctx.createAnalyser();
-  analyser.fftSize = 512;
+  //sample rate is 48000
+  // length  10472385
+
+  // https://archive.org/download/Radiate_Joy-8267/Colin_Shaddick__Roger_Nicholls_-_01_-_Radiate_Joy.mp3
+  // https://archive.org/download/The_Dread_-_FMA_Sampler-18671/The_Dread_-_05_-_Thrashin.mp3
+  // https://archive.org/download/Bastard_Child-3477/Moonshine_Willy_-_04_-_Turn_The_Lights_Down_Low.mp3
+
+  //                    FOLLOW THIS FOR SWEET NECTAR
+
+  // https://developer.mozilla.org/en-US/docs/Web/API/OfflineAudioContext
+
+  const audioCtx = new AudioContext();
+  const offlineCtx = new OfflineAudioContext(2, 10472385, 48000);
+
+  const analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 4096;
   const bufferLength = analyser.frequencyBinCount;
 
   const dataArray = new Uint8Array(bufferLength);
 
-  const canvas = document.getElementById("canvas");
-  const canvasCtx = canvas.getContext("2d");
-  canvasCtx.clearRect(0, 0, 150, 100);
+  //             SPECTRUM WINDOW
+
+  // const canvas = document.getElementById("canvas");
+  // const canvasCtx = canvas.getContext("2d");
+  // canvasCtx.clearRect(0, 0, 150, 100);
 
   let audio;
 
   fetch(
-    "https://archive.org/download/The_Dread_-_FMA_Sampler-18671/The_Dread_-_05_-_Thrashin.mp3",
+    "https://archive.org/download/Bastard_Child-3477/Moonshine_Willy_-_04_-_Turn_The_Lights_Down_Low.mp3",
     {
       header: {
         "Access-Control-Allow-Origin": "*",
@@ -25,20 +38,30 @@ export default function AudioEditor() {
     }
   )
     .then((data) => data.arrayBuffer())
-    .then((arrayBuffer) => ctx.decodeAudioData(arrayBuffer))
+    .then((arrayBuffer) => audioCtx.decodeAudioData(arrayBuffer))
     .then((decodedAudio) => {
       audio = decodedAudio;
     });
 
   function playBack() {
-    const playSound = ctx.createBufferSource();
+    const playSound = audioCtx.createBufferSource();
     playSound.buffer = audio;
     playSound.connect(analyser);
-    playSound.connect(ctx.destination);
-    playSound.start(ctx.currentTime);
+    playSound.connect(audioCtx.destination);
+    playSound.start(audioCtx.currentTime);
+  }
+
+  function downloadAudio() {
+    const playSound = offlineCtx.createBufferSource();
+    console.log(audio);
+    playSound.buffer = audio;
+    playSound.connect(analyser);
+    // playSound.start(ctx.currentTime);
+    playSound.startRendering();
   }
 
   window.addEventListener("mousedown", playBack);
+  // window.addEventListener("mousedown", downloadAudio);
 
   function draw() {
     const drawVisual = requestAnimationFrame(draw);
@@ -58,28 +81,40 @@ export default function AudioEditor() {
     //                                      IF YOU PUSH ALL DATA THAT COMES BEFORE AND AFTER THE ELEMENT YOU ARE TESTING INTO A NEW ARRAY...
     //                                      AND THEN TEST THE NEW ARRAY AGAINST THE SHRUNKEN ELEMENT...
     //                                      YOU WILL HAVE A PRETTY GOOD IDEA OF WHEN THAT FREQUENCY IS PROMINENT
-    //1. if((dataArray[0] - 20) > )
+    if (dataArray.slice(5).every((a) => a < dataArray[4])) {
+      console.log(audioCtx.currentTime);
+      console.log(audioCtx.getOutputTimestamp());
+    }
 
     // console.log(dataArray[0] - 20)
 
-    const WIDTH = 150;
-    const HEIGHT = 100;
+    // console.log(dataArray)
 
-    canvasCtx.fillStyle = "rgb(0 0 0)";
-    canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
+    // console.log(dataArray.indexOf(Math.max(dataArray)))
+    // console.log(dataArray[2])
 
-    const barWidth = (WIDTH / bufferLength) * 2.5;
-    let barHeight;
-    let x = 0;
+    // console.log(ctx.sampleRate)
 
-    for (let i = 0; i < bufferLength; i++) {
-      barHeight = dataArray[i] / 2;
+    // site drawing
 
-      canvasCtx.fillStyle = `rgb(${barHeight + 100} 50 50)`;
-      canvasCtx.fillRect(x, HEIGHT - barHeight / 2, barWidth, barHeight);
+    // const WIDTH = 150;
+    // const HEIGHT = 100;
 
-      x += barWidth + 1;
-    }
+    // canvasCtx.fillStyle = "rgb(0 0 0)";
+    // canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
+
+    // const barWidth = (WIDTH / bufferLength) * 2.5;
+    // let barHeight;
+    // let x = 0;
+
+    // for (let i = 0; i < bufferLength; i++) {
+    //   barHeight = dataArray[i] / 2;
+
+    //   canvasCtx.fillStyle = `rgb(${barHeight + 100} 50 50)`;
+    //   canvasCtx.fillRect(x, HEIGHT - barHeight / 2, barWidth, barHeight);
+
+    //   x += barWidth + 1;
+    // }
   }
 
   draw();
