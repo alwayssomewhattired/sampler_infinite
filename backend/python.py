@@ -1,7 +1,7 @@
 
 ###################################################################################TODO#########################################################################
 
-# this is the communicator between the IAA api and my python server
+# this is the communicator between the IA api and my python server
 
 
 # https://archive.org/download/The_Dread_-_FMA_Sampler-18671/The_Dread_-_05_-_Thrashin.mp3
@@ -85,5 +85,3 @@ def receive_data():
 
 
 
-if __name__ == '__main__':
-    app.run(debug=True)
