@@ -8,7 +8,7 @@
 
 # My s3 credentials are not secure whatsoever. 
 
-# downloader() sometimes cannot choose from an empty sequence. Causes program to crash.
+# downloader() sometimes cannot choose from an empty sequence. Causes program to crash. Create conditional for if output length is less than whatever it is that causes the crash.
 
 # find a way to store the searcher() return temporarily so it doesn't have to keep re-computing... takes a lot of time.
 
@@ -20,7 +20,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from internetarchive import download, search_items
 
-from dotenv import load_dotenv, dotenv_values
+from dotenv import load_dotenv
 
 import random
 import contextlib
@@ -33,9 +33,9 @@ import socket
 # # audio file processing
 import requests
 
-import asyncio
+# import asyncio
 
-import websockets
+# import websockets
 
 import boto3
 
@@ -51,7 +51,7 @@ load_dotenv()
 print(os.getenv("AWS_SECRET_KEY"))
 
 results = []
-indexer = None
+indexer = 0
 random_number = []
 random_song = []
 thisisit = None
@@ -60,9 +60,53 @@ mylist = []
 anotherlist = []
 output = None
 url = None
+NAME_FOR_S3 = "fetch-test.mp3"
 
 
+HOST = "127.0.0.1" # Localhost
+PORT = 5000
 
+# Function to execute when receiving a specific command
+def my_function():
+    print("TRIGGERED!!!")
+
+# Function for Websocket
+def start_server():
+    message = f"audio_now_uploaded:{NAME_FOR_S3}"
+
+    searcher()
+
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind((HOST, PORT))
+    server_socket.listen(1)
+
+    print("Waiting for C++ client to connect...")
+
+    while True:
+        conn, addr = server_socket.accept()
+        print(f"Connected to {addr}")
+        data = conn.recv(1024).decode("utf-8") # Receive and decode message
+        if not data:
+            print("not data")
+            break
+
+        print(f"Received from C++ {data}")
+
+        # Call function if message matches
+        if data.strip() == "run_function":
+            global indexer
+            random_number.append(random.randint(0, indexer))
+            print(f"random number: {random_number}")
+            print(f"Indexer {indexer}")
+            downloader()
+            main()
+
+            conn.sendall(message.encode('utf-8'))
+        elif data.strip() == "finish_now":
+            print("Connection closed")
+            conn.close()
+            break
+            
 
 # This gets a random song and stores the urls in the output variable
 def downloader():
@@ -87,9 +131,15 @@ def downloader():
 
     # Logic for getting a random single song if multiple are returned
     # need to add availability for other file types, but so far mp3 has been every single one
+    print (f"Output: {output}")
+    print (f"Output length: {len(output)}")
     splitOutput = output.split(".mp3")
+    print(splitOutput)
     splitOutput2 = splitOutput[:-1]
+    print(splitOutput2)
+
     randomSong = random.choice(splitOutput2)
+    print(randomSong)
     randomSongUrl = randomSong + ".mp3"
     # The randomly chosen song url
     print(randomSongUrl)
@@ -108,19 +158,22 @@ def downloader():
 # This finds a random number based on the amount of songs in an audio collection on Internet Archive
 def searcher():
     searched = search_items(query="collection:(freemusicarchive)")
-    if len(results) == 0:
-        for result in searched:
-            results.append(result['identifier'])
+    # if len(results) == 0: # why???
+    for result in searched:
+        results.append(result['identifier'])
+    global indexer 
     indexer = len(results) - 1
-    random_number.append(random.randint(0, indexer))
+    print(f"deep indexer {indexer}")
+    # random_number.append(random.randint(0, indexer))
+    # print(random_number)
     print("done searching")
-    return random_number
+    # return random_number
     
 # Creates a random number used for finding a random song
-searcher()
+# searcher()
 
 # Stores the urls of the random song in "url"
-downloader()
+# downloader()
 
 # I believe this is how I receive a directory from the front end... I don't think I can download stuff to a users specified directory... so this might be dumb.
 @app.route('/api/endpoint', methods=['POST'])
@@ -138,11 +191,15 @@ AWS_REGION = "us-east-2"
 AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
 AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
 
-# FETCHED_URL = downloader
-FETCHED_DATA = requests.get(url)
-NAME_FOR_S3 = "fetch-test.mp3"
 
 def main():
+
+# FETCHED_URL = downloader
+    FETCHED_DATA = requests.get(url)
+    NAME_FOR_S3 = "fetch-test.mp3"
+
+    random_number.pop(0)
+
     print('in main method')
 
     s3_client = boto3.client(
@@ -157,106 +214,5 @@ def main():
     print(f'upload_log_to_aws response: {response}')
 
 if __name__ == '__main__':
-    main()
-
-
-
-
-
-
-
-
-# This is the socket connected to the C++ server
-
-# def send_audio_file(filename, host='127.0.0.1', port=12345):
-#     # Open the audio file in binary mode
-#     with open(filename, 'rb') as f:
-#         audio_data = f.read()
-
-#     # Create a socket object and connect to the server
-#     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-#         client_socket.connect((host, port))
-#         # Send the binary data of the audio file
-#         client_socket.sendall(audio_data)
-
-
-
-
-#This works kind of
-# def read_mp3_from_url(url):
-# #     # Fetch the MP3 file from the URL
-#     response = requests.get(url)
-
-    
-# #     # Ensure the request was successful
-#     if response.status_code == 200:
-# #         # Use BytesIO to create a file-like object from the response content
-#         mp3_data = BytesIO(response.content)
-        
-
-
-# #         # Load the MP3 file into pydub (you can process it further as needed)
-#         audio = AudioSegment.from_mp3(mp3_data)
-#         print(audio)
-#         buffer = io.BytesIO()
-#         audio.export(buffer, format="mp3")
-#         audio_data = buffer.getvalue()
-
-        
-# #         # Example: Print out the length of the MP3 file in seconds
-#         print(f"Duration of the audio: {audio.duration_seconds} seconds")
-
-
-#         return audio_data
-
-#     else:
-#         print(f"Failed to fetch MP3 from URL. Status code: {response.status_code}")
-
-
-#                                                                              CREATE AUDIO FILE FROM FETCH
-
-
-
-
-
-
-# lol = downloader()
-
-# This is a chunk version
-# def send_audio_in_chunks(filepath, chunk_size = 1024):
-#      client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#      client_socket.connect(("127.0.0.1", 12345))
-#      with open(filepath, 'rb') as audio_file:
-#         while chunk := audio_file.read(chunk_size):
-#             # Send each chunk to the server (C++)
-#             client_socket.sendall(chunk)
-     
-#      print("Audio File sent success")
-#      client_socket.close()
-
-# send_audio_in_chunks(lol)
-
-
-
-
-# result = read_mp3_from_url(downloader())
-
-# async def send_audio():
-#     uri = "ws://127.0.0.1:12345"
-
-
-#     async with websockets.connect(uri) as websocket:
-#         await websocket.send(result)
-#         print("MP3 data sent to the server")
-
-# asyncio.run(send_audio())
-
-
-
-# if __name__ == '__main__':
-#     print ("hi")
-#     send_audio_file(read_mp3_from_url(downloader()))  # put audio file in arg
-
-
-
+    start_server()
 
